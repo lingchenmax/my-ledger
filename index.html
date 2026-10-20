@@ -49,13 +49,26 @@
         .btn-outline { background: transparent; color: #1e90ff; border: 1px solid #1e90ff; }
         .btn-outline:active { background: #e6f2ff; }
 
+        /* 标签样式优化 */
+        .budget-tags {
+            display: flex;
+            gap: 8px;
+            margin-right: 10px;
+        }
         .budget-sum-tag {
-            font-size: 14px;
+            font-size: 13px;
             color: #ff4757;
             font-weight: bold;
-            margin-right: 15px;
             background: #fff2f2;
-            padding: 4px 10px;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+        .budget-remain-tag {
+            font-size: 13px;
+            color: #2ed573; /* 默认绿色 */
+            font-weight: bold;
+            background: #f0fbf4;
+            padding: 4px 8px;
             border-radius: 20px;
         }
     </style>
@@ -82,7 +95,7 @@
             <tr>
                 <td>支出总额</td>
                 <td id="totalExpense" class="highlight">0</td>
-                <td>本月结余</td> <!-- 修改了这里的文案 -->
+                <td>本月结余</td>
                 <td id="netIncome">0</td>
             </tr>
         </table>
@@ -119,7 +132,11 @@
         <h2>
             <span>支出预算分类</span>
             <div style="display: flex; align-items: center;">
-                <span class="budget-sum-tag" id="totalBudgetDisplay">总预算: 0</span>
+                <!-- 新增：总预算和总剩余显示 -->
+                <div class="budget-tags">
+                    <span class="budget-sum-tag" id="totalBudgetDisplay">总预算: 0</span>
+                    <span class="budget-remain-tag" id="totalRemainDisplay">总剩余: 0</span>
+                </div>
                 <button class="btn btn-success btn-sm" onclick="addCategory()">+ 添加分类</button>
             </div>
         </h2>
@@ -204,8 +221,8 @@
     let monthList = []; 
 
     function init() {
-        // v10: 修改“月净收入”为“本月结余”，增加预算总和显示
-        const dataVersion = 'v10'; 
+        // v11: 增加总剩余显示
+        const dataVersion = 'v11'; 
         const savedVersion = localStorage.getItem('myLedgerVersion');
         const savedData = localStorage.getItem('myLedgerData');
         
@@ -359,17 +376,44 @@
         return income + rollover - expense;
     }
 
-    function updateTotalBudget() {
+    // 更新总预算和总剩余
+    function updateBudgetTags() {
         const monthData = appData[currentMonth];
         if (!monthData || !monthData.categories) return;
-        const totalBudget = monthData.categories.reduce((sum, cat) => sum + (Number(cat.budget) || 0), 0);
+
+        let totalBudget = 0;
+        let totalExpense = 0;
+
+        monthData.categories.forEach(cat => {
+            totalBudget += (Number(cat.budget) || 0);
+            totalExpense += monthData.records
+                .filter(r => r.category === cat.name)
+                .reduce((sum, r) => sum + Number(r.amount), 0);
+        });
+
+        const totalRemain = totalBudget - totalExpense;
+
+        // 更新DOM
         document.getElementById('totalBudgetDisplay').innerText = `总预算: ${totalBudget}`;
+        
+        const remainEl = document.getElementById('totalRemainDisplay');
+        remainEl.innerText = `总剩余: ${totalRemain}`;
+        
+        // 动态改变总剩余的颜色：正数绿，负数红
+        if (totalRemain < 0) {
+            remainEl.style.color = '#ff4757';
+            remainEl.style.backgroundColor = '#fff2f2';
+        } else {
+            remainEl.style.color = '#2ed573';
+            remainEl.style.backgroundColor = '#f0fbf4';
+        }
     }
 
+    // 修改分类预算（防焦点丢失）
     function updateCategoryBudget(index, newBudget) {
         appData[currentMonth].categories[index].budget = Number(newBudget) || 0;
         
-        updateTotalBudget();
+        updateBudgetTags(); // 更新头部标签
         updateOverviewOnly();
         
         const monthData = appData[currentMonth];
@@ -555,7 +599,7 @@
         if (currentInputVal && monthData.categories.some(c => c.name === currentInputVal)) inputCategory.value = currentInputVal;
         if (currentFilterVal) filterCategory.value = currentFilterVal;
 
-        updateTotalBudget();
+        updateBudgetTags(); // 渲染表格时同步更新标签
     }
 
     function renderRecords() {
