@@ -49,7 +49,6 @@
         .btn-outline { background: transparent; color: #1e90ff; border: 1px solid #1e90ff; }
         .btn-outline:active { background: #e6f2ff; }
 
-        /* 新增预算总和标签的样式 */
         .budget-sum-tag {
             font-size: 14px;
             color: #ff4757;
@@ -83,7 +82,7 @@
             <tr>
                 <td>支出总额</td>
                 <td id="totalExpense" class="highlight">0</td>
-                <td>月净收入</td>
+                <td>本月结余</td> <!-- 修改了这里的文案 -->
                 <td id="netIncome">0</td>
             </tr>
         </table>
@@ -120,7 +119,6 @@
         <h2>
             <span>支出预算分类</span>
             <div style="display: flex; align-items: center;">
-                <!-- 新增：预算总和显示 -->
                 <span class="budget-sum-tag" id="totalBudgetDisplay">总预算: 0</span>
                 <button class="btn btn-success btn-sm" onclick="addCategory()">+ 添加分类</button>
             </div>
@@ -206,8 +204,8 @@
     let monthList = []; 
 
     function init() {
-        // v9: 增加预算总和显示
-        const dataVersion = 'v9'; 
+        // v10: 修改“月净收入”为“本月结余”，增加预算总和显示
+        const dataVersion = 'v10'; 
         const savedVersion = localStorage.getItem('myLedgerVersion');
         const savedData = localStorage.getItem('myLedgerData');
         
@@ -361,7 +359,6 @@
         return income + rollover - expense;
     }
 
-    // 计算并更新总预算
     function updateTotalBudget() {
         const monthData = appData[currentMonth];
         if (!monthData || !monthData.categories) return;
@@ -369,17 +366,12 @@
         document.getElementById('totalBudgetDisplay').innerText = `总预算: ${totalBudget}`;
     }
 
-    // 修改分类预算（输入时实时触发，防焦点丢失）
     function updateCategoryBudget(index, newBudget) {
         appData[currentMonth].categories[index].budget = Number(newBudget) || 0;
         
-        // 1. 更新总预算显示
         updateTotalBudget();
-        
-        // 2. 只更新顶部的数据总览，不重绘表格
         updateOverviewOnly();
         
-        // 3. 更新当前这行的“预算剩余”文本
         const monthData = appData[currentMonth];
         const cat = monthData.categories[index];
         const catExpense = monthData.records.filter(r => r.category === cat.name).reduce((sum, r) => sum + Number(r.amount), 0);
@@ -395,7 +387,6 @@
         saveData();
     }
 
-    // 仅更新第一部分的数字，不碰任何表格 DOM
     function updateOverviewOnly() {
         const monthData = appData[currentMonth];
         const totalIncome = calculateMonthIncome(monthData);
@@ -409,8 +400,6 @@
         document.getElementById('netIncome').innerText = netIncome;
         document.getElementById('lastMonthRollover').innerText = monthData.rollover || 0;
     }
-
-    // ================= 其他功能函数 =================
 
     function exportData() {
         if (Object.keys(appData).length === 0) return alert("目前没有任何数据可以导出！");
@@ -566,7 +555,6 @@
         if (currentInputVal && monthData.categories.some(c => c.name === currentInputVal)) inputCategory.value = currentInputVal;
         if (currentFilterVal) filterCategory.value = currentFilterVal;
 
-        // 渲染表格时同步更新总预算
         updateTotalBudget();
     }
 
