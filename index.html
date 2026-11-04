@@ -4,81 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>我的智能记账本</title>
-    <!-- 引入 ECharts 用于图表显示 -->
+    <!-- 引入 ECharts -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- 引入 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 引入分离的 CSS -->
+    <link rel="stylesheet" href="style.css">
 	<link rel="manifest" href="manifest.json">
 	<meta name="theme-color" content="#007aff">
-	<link rel="icon" type="image/png" href="icon-192.png">
-	<link rel="apple-touch-icon" href="icon-192.png">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #f5f6fa; color: #333; padding: 10px; padding-bottom: 50px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .card { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        h2 { font-size: 16px; margin-bottom: 10px; color: #2f3542; border-left: 4px solid #1e90ff; padding-left: 8px; display: flex; justify-content: space-between; align-items: center;}
-        table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: center; }
-        th, td { padding: 8px 4px; border-bottom: 1px solid #eee; }
-        th { color: #747d8c; font-weight: normal; }
-        input, select { width: 100%; padding: 6px; border: 1px solid #dfe4ea; border-radius: 6px; font-size: 14px; text-align: center; outline: none; background: #fafafa; }
-        input:focus, select:focus { border-color: #1e90ff; background: #fff; }
-        .btn { background: #1e90ff; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-size: 14px; margin-top: 10px; width: 100%; cursor: pointer; }
-        .btn:active { background: #0c7cd5; }
-        .btn-sm { padding: 4px 8px; font-size: 12px; margin: 0; width: auto; }
-        .btn-danger { background: #ff4757; }
-        .btn-success { background: #2ed573; }
-        .highlight { color: #ff4757; font-weight: bold; }
-        .flex-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-        .flex-row > * { flex: 1; }
-        
-        .month-selector { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 18px; font-weight: bold; }
-        .month-selector select { width: auto; font-size: 18px; border: none; background: transparent; font-weight: bold; color: #1e90ff; cursor: pointer;}
-        .month-selector span { color: #1e90ff; }
-        
-        #chart { width: 100%; height: 250px; margin-top: 10px; }
-        .filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #f1f2f6; padding: 8px 10px; border-radius: 8px; font-size: 14px; }
-        .filter-bar select { width: 120px; display: inline-block; margin-left: 5px; }
-
-        .card table.overview-table { table-layout: fixed; width: 100%; }
-        .card table.overview-table td { padding: 12px 5px; vertical-align: middle; }
-        .card table.overview-table td:nth-child(1), .card table.overview-table td:nth-child(3) { font-size: 14px; color: #747d8c; }
-        #totalIncome, #totalExpense, #lastMonthRollover, #netIncome { font-size: 20px; font-weight: bold; font-family: inherit; }
-        #totalIncome { background: transparent; border: none; text-align: center; padding: 0; margin: 0; color: #2f3542; border-radius: 0; cursor: default; }
-        #lastMonthRollover { color: #2ed573 !important; }
-        #netIncome { color: #1e90ff !important; }
-        #totalExpense { color: #ff4757; }
-
-        .backup-card { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px dashed #1e90ff; }
-        .backup-btns { display: flex; gap: 10px; }
-        .backup-btns .btn { margin-top: 0; }
-        .btn-outline { background: transparent; color: #1e90ff; border: 1px solid #1e90ff; }
-        .btn-outline:active { background: #e6f2ff; }
-
-        /* 标签样式优化 */
-        .budget-tags {
-            display: flex;
-            gap: 8px;
-            margin-right: 10px;
-        }
-        .budget-sum-tag {
-            font-size: 13px;
-            color: #ff4757;
-            font-weight: bold;
-            background: #fff2f2;
-            padding: 4px 8px;
-            border-radius: 20px;
-        }
-        .budget-remain-tag {
-            font-size: 13px;
-            color: #2ed573; /* 默认绿色 */
-            font-weight: bold;
-            background: #f0fbf4;
-            padding: 4px 8px;
-            border-radius: 20px;
-        }
-    </style>
+	<link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
 <body>
 <div class="container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+        <div id="userStatus" class="user-status" onclick="toggleAuthModal()">
+            <span class="status-dot"></span> 未登录 (本地模式)
+        </div>
+    </div>
 
     <!-- 第一部分：月度总览 -->
     <div class="card">
@@ -136,7 +80,6 @@
         <h2>
             <span>支出预算分类</span>
             <div style="display: flex; align-items: center;">
-                <!-- 新增：总预算和总剩余显示 -->
                 <div class="budget-tags">
                     <span class="budget-sum-tag" id="totalBudgetDisplay">总预算: 0</span>
                     <span class="budget-remain-tag" id="totalRemainDisplay">总剩余: 0</span>
@@ -198,533 +141,38 @@
 
     <!-- 第五部分：数据备份与恢复 -->
     <div class="backup-card">
-        <h2 style="border-left-color: #ff9f43; margin-bottom: 15px;">数据备份与恢复</h2>
+        <h2 style="border-left-color: #ff9f43; margin-bottom: 15px;">数据备份与恢复 (本地)</h2>
         <div class="backup-btns">
             <button class="btn" style="background: #1e90ff;" onclick="exportData()">📥 导出备份</button>
             <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📤 导入恢复</button>
             <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
         </div>
-        <p style="font-size: 12px; color: #888; margin-top: 10px; text-align: center;">
-            提示：换设备或清理浏览器缓存前，请务必导出备份文件。
-        </p>
     </div>
 
 </div>
 
-<script>
-    const defaultCategories = [
-        { name: 'A', budget: 0 },
-        { name: 'B', budget: 0 },
-        { name: 'C', budget: 0 },
-        { name: '其他', budget: 0 }
-    ];
-
-    let currentMonth = ""; 
-    let appData = {}; 
-    let monthList = []; 
-
-    function init() {
-        // v11: 增加总剩余显示
-        const dataVersion = 'v11'; 
-        const savedVersion = localStorage.getItem('myLedgerVersion');
-        const savedData = localStorage.getItem('myLedgerData');
+<!-- 登录/注册悬浮窗 (遮罩层) -->
+<div class="modal-overlay" id="authModal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="toggleAuthModal()">&times;</span>
+        <h3 id="modalTitle">登录云端账号</h3>
+        <p class="modal-desc">登录后，您的数据将自动同步到云端</p>
         
-        if (savedData) {
-            try { appData = JSON.parse(savedData); } catch (e) { appData = {}; }
-        }
-
-        if (savedVersion !== dataVersion) {
-            migrateData(appData);
-            localStorage.setItem('myLedgerVersion', dataVersion);
-        }
-
-        initDateSelectors();
-        document.getElementById('inputDate').valueAsDate = new Date();
-        document.getElementById('inputIncomeDate').valueAsDate = new Date();
-        rebuildMonthList();
-        setToCurrentDate();
-        loadMonthData();
-    }
-
-    function migrateData(data) {
-        for (let month in data) {
-            if (!data[month].incomeRecords) data[month].incomeRecords = []; 
-            if (!data[month].categories) data[month].categories = JSON.parse(JSON.stringify(defaultCategories));
-            if (!data[month].records) data[month].records = [];
-        }
-        localStorage.setItem('myLedgerData', JSON.stringify(data));
-    }
-
-    function initDateSelectors() {
-        const yearSelect = document.getElementById('yearSelect');
-        const monthSelect = document.getElementById('monthSelect');
-        yearSelect.innerHTML = '';
-        monthSelect.innerHTML = '';
-
-        let existingYears = new Set();
-        for (let key in appData) {
-            const match = key.match(/^(\d{4})年/);
-            if (match) existingYears.add(parseInt(match[1]));
-        }
-
-        const currentYear = new Date().getFullYear();
-        for (let i = -5; i <= 5; i++) existingYears.add(currentYear + i);
-
-        const sortedYears = Array.from(existingYears).sort((a, b) => b - a);
-        sortedYears.forEach(year => {
-            const option = document.createElement('option');
-            option.value = year;
-            option.text = year;
-            yearSelect.appendChild(option);
-        });
-
-        for (let i = 1; i <= 12; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.text = i;
-            monthSelect.appendChild(option);
-        }
-    }
-
-    function setToCurrentDate() {
-        const today = new Date();
-        document.getElementById('yearSelect').value = today.getFullYear();
-        document.getElementById('monthSelect').value = today.getMonth() + 1;
-    }
-
-    function rebuildMonthList() {
-        monthList = [];
-        let years = [];
-        for (let key in appData) {
-            const match = key.match(/^(\d{4})年/);
-            if (match) years.push(parseInt(match[1]));
-        }
-        const currentYear = new Date().getFullYear();
-        years.push(currentYear); 
+        <input type="email" id="authEmail" placeholder="请输入邮箱" class="auth-input">
+        <input type="password" id="authPassword" placeholder="请输入密码 (至少6位)" class="auth-input">
         
-        const minYear = Math.min(...years);
-        const maxYear = Math.max(...years) + 1; 
-
-        for (let y = minYear; y <= maxYear; y++) {
-            for (let m = 1; m <= 12; m++) {
-                monthList.push(`${y}年${m}月`);
-            }
-        }
-    }
-
-    function loadMonthData() {
-        const year = document.getElementById('yearSelect').value;
-        const month = document.getElementById('monthSelect').value;
-        if (!year || !month) return; 
-        currentMonth = `${year}年${month}月`;
-
-        if (!appData[currentMonth]) {
-            appData[currentMonth] = createNewMonthData();
-            saveData();
-        }
-        if (!appData[currentMonth].incomeRecords) appData[currentMonth].incomeRecords = [];
-
-        recalculateRollovers();
-        const monthData = appData[currentMonth];
+        <button class="btn primary-btn" id="authSubmitBtn" onclick="handleAuthSubmit()">登 录</button>
         
-        document.getElementById('totalIncome').value = calculateMonthIncome(monthData) || '0';
-        document.getElementById('lastMonthRollover').innerText = monthData.rollover || 0;
-
-        renderIncomeRecords();       
-        renderBudgetTable();
-        renderRecords();
-        updateViewAndChart();
-    }
-
-    function createNewMonthData() {
-        let currentExpenseCats = JSON.parse(JSON.stringify(defaultCategories));
-        const monthsArray = Object.keys(appData).sort(); 
-        if (monthsArray.length > 0) {
-            const lastMonthData = appData[monthsArray[monthsArray.length - 1]];
-            if (lastMonthData && lastMonthData.categories) {
-                currentExpenseCats = JSON.parse(JSON.stringify(lastMonthData.categories));
-            }
-        }
-        return { income: 0, rollover: 0, categories: currentExpenseCats, records: [], incomeRecords: [] };
-    }
-
-    function recalculateRollovers() {
-        let prevNet = 0; 
-        monthList.forEach((month) => {
-            if (!appData[month]) appData[month] = createNewMonthData();
-            if (appData[month]) {
-                appData[month].rollover = prevNet;
-                prevNet = calculateMonthNet(appData[month]);
-            }
-        });
-    }
-
-    function saveData() {
-        localStorage.setItem('myLedgerData', JSON.stringify(appData));
-    }
-
-    function calculateMonthIncome(monthData) {
-        if (!monthData.incomeRecords) return 0;
-        return monthData.incomeRecords.reduce((sum, record) => sum + Number(record.amount), 0);
-    }
-
-    function calculateMonthExpense(monthData) {
-        return monthData.records.reduce((sum, record) => sum + Number(record.amount), 0);
-    }
-
-    function calculateMonthNet(monthData) {
-        const income = calculateMonthIncome(monthData); 
-        const rollover = Number(monthData.rollover) || 0;
-        const expense = calculateMonthExpense(monthData);
-        return income + rollover - expense;
-    }
-
-    // 更新总预算和总剩余
-    function updateBudgetTags() {
-        const monthData = appData[currentMonth];
-        if (!monthData || !monthData.categories) return;
-
-        let totalBudget = 0;
-        let totalExpense = 0;
-
-        monthData.categories.forEach(cat => {
-            totalBudget += (Number(cat.budget) || 0);
-            totalExpense += monthData.records
-                .filter(r => r.category === cat.name)
-                .reduce((sum, r) => sum + Number(r.amount), 0);
-        });
-
-        const totalRemain = totalBudget - totalExpense;
-
-        // 更新DOM
-        document.getElementById('totalBudgetDisplay').innerText = `总预算: ${totalBudget}`;
+        <div class="auth-switch">
+            <span id="switchText">还没有账号？</span>
+            <a href="javascript:void(0)" id="switchBtn" onclick="switchAuthMode()">去注册</a>
+        </div>
         
-        const remainEl = document.getElementById('totalRemainDisplay');
-        remainEl.innerText = `总剩余: ${totalRemain}`;
-        
-        // 动态改变总剩余的颜色：正数绿，负数红
-        if (totalRemain < 0) {
-            remainEl.style.color = '#ff4757';
-            remainEl.style.backgroundColor = '#fff2f2';
-        } else {
-            remainEl.style.color = '#2ed573';
-            remainEl.style.backgroundColor = '#f0fbf4';
-        }
-    }
+        <div id="authError" class="auth-error"></div>
+    </div>
+</div>
 
-    // 修改分类预算（防焦点丢失）
-    function updateCategoryBudget(index, newBudget) {
-        appData[currentMonth].categories[index].budget = Number(newBudget) || 0;
-        
-        updateBudgetTags(); // 更新头部标签
-        updateOverviewOnly();
-        
-        const monthData = appData[currentMonth];
-        const cat = monthData.categories[index];
-        const catExpense = monthData.records.filter(r => r.category === cat.name).reduce((sum, r) => sum + Number(r.amount), 0);
-        const remaining = cat.budget - catExpense;
-        
-        const tr = document.querySelectorAll('#budgetBody tr')[index];
-        if (tr) {
-            const remainingTd = tr.children[3];
-            remainingTd.innerText = remaining;
-            remainingTd.className = remaining < 0 ? 'highlight' : '';
-        }
-        
-        saveData();
-    }
-
-    function updateOverviewOnly() {
-        const monthData = appData[currentMonth];
-        const totalIncome = calculateMonthIncome(monthData);
-        const totalExpense = calculateMonthExpense(monthData);
-        
-        recalculateRollovers(); 
-        const netIncome = calculateMonthNet(monthData);
-
-        document.getElementById('totalIncome').value = totalIncome || '0';
-        document.getElementById('totalExpense').innerText = totalExpense;
-        document.getElementById('netIncome').innerText = netIncome;
-        document.getElementById('lastMonthRollover').innerText = monthData.rollover || 0;
-    }
-
-    function exportData() {
-        if (Object.keys(appData).length === 0) return alert("目前没有任何数据可以导出！");
-        const dataStr = JSON.stringify(appData, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const date = new Date();
-        const dateStr = `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `记账本备份_${dateStr}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                if (typeof importedData !== 'object' || Array.isArray(importedData)) throw new Error("数据格式不正确");
-                if (confirm("⚠️ 导入备份将覆盖当前所有数据！\n\n确定要导入吗？建议先导出当前数据作为保险。")) {
-                    appData = importedData;
-                    migrateData(appData);
-                    saveData();
-                    initDateSelectors();
-                    rebuildMonthList();
-                    setToCurrentDate();
-                    loadMonthData();
-                    alert("✅ 数据导入成功！");
-                }
-            } catch (err) {
-                alert("❌ 导入失败，文件可能已损坏或不是合法的备份文件。\n\n错误信息：" + err.message);
-            } finally {
-                event.target.value = '';
-            }
-        };
-        reader.readAsText(file);
-    }
-
-    function addIncomeRecord() {
-        const categoryInput = document.getElementById('inputIncomeCategory');
-        const date = document.getElementById('inputIncomeDate').value;
-        const amount = Number(document.getElementById('inputIncomeAmount').value);
-        const note = document.getElementById('inputIncomeNote').value;
-        const category = categoryInput.value.trim();
-
-        if (!category) return alert("请输入收入类别（如：工资）！");
-        if (!date || !amount || amount <= 0) return alert("请填写完整的日期和正确的金额！");
-
-        appData[currentMonth].incomeRecords.push({
-            id: 'inc_' + Date.now().toString(), category, date, amount, note
-        });
-        
-        categoryInput.value = '';
-        document.getElementById('inputIncomeAmount').value = '';
-        document.getElementById('inputIncomeNote').value = '';
-        categoryInput.focus();
-
-        calculateAll(); 
-    }
-
-    function deleteIncomeRecord(id) {
-        if (!confirm("确定要删除这条收入记录吗？")) return;
-        appData[currentMonth].incomeRecords = appData[currentMonth].incomeRecords.filter(r => r.id !== id);
-        calculateAll();
-    }
-
-    function renderIncomeRecords() {
-        const tbody = document.getElementById('incomeRecordBody');
-        tbody.innerHTML = '';
-        const sortedRecords = [...appData[currentMonth].incomeRecords].reverse();
-
-        if (sortedRecords.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:#999; padding: 20px 0;">暂无收入记录</td></tr>';
-            return;
-        }
-        sortedRecords.forEach(record => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${record.category}</td>
-                <td>${record.date.substring(5)}</td>
-                <td style="color: #2ed573; font-weight: bold;">+${record.amount}</td>
-                <td>${record.note || '-'}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteIncomeRecord('${record.id}')">删</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function addCategory() {
-        const newName = prompt("请输入新的支出分类名称：");
-        if (!newName || newName.trim() === "") return;
-        const monthData = appData[currentMonth];
-        if (monthData.categories.some(c => c.name === newName.trim())) return alert("该分类已存在！");
-        monthData.categories.push({ name: newName.trim(), budget: 0 });
-        calculateAll();
-    }
-
-    function deleteCategory(index) {
-        const monthData = appData[currentMonth];
-        const catName = monthData.categories[index].name;
-        const hasRecords = monthData.records.some(r => r.category === catName);
-        if (hasRecords) {
-            if (!confirm(`分类“${catName}”下已有记账明细，删除后不影响总账。确定删除吗？`)) return;
-        } else {
-            if (!confirm(`确定要删除分类“${catName}”吗？`)) return;
-        }
-        monthData.categories.splice(index, 1);
-        calculateAll();
-    }
-
-    function renderBudgetTable() {
-        const monthData = appData[currentMonth];
-        const tbody = document.getElementById('budgetBody');
-        tbody.innerHTML = '';
-
-        const inputCategory = document.getElementById('inputCategory');
-        const filterCategory = document.getElementById('filterCategory');
-        const currentInputVal = inputCategory.value;
-        const currentFilterVal = filterCategory.value;
-
-        inputCategory.innerHTML = '';
-        filterCategory.innerHTML = '<option value="全部">全部明细</option>';
-
-        monthData.categories.forEach((cat, index) => {
-            const catExpense = monthData.records.filter(r => r.category === cat.name).reduce((sum, r) => sum + Number(r.amount), 0);
-            const remaining = cat.budget - catExpense;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><input type="text" value="${cat.name}" onchange="updateCategoryName(${index}, this.value)"></td>
-                <td><input type="number" value="${cat.budget}" oninput="updateCategoryBudget(${index}, this.value)"></td>
-                <td>${catExpense}</td>
-                <td class="${remaining < 0 ? 'highlight' : ''}">${remaining}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteCategory(${index})">删</button></td>
-            `;
-            tbody.appendChild(tr);
-
-            const option1 = document.createElement('option');
-            option1.value = cat.name; option1.text = cat.name;
-            inputCategory.appendChild(option1);
-
-            const option2 = document.createElement('option');
-            option2.value = cat.name; option2.text = cat.name;
-            filterCategory.appendChild(option2);
-        });
-
-        if (currentInputVal && monthData.categories.some(c => c.name === currentInputVal)) inputCategory.value = currentInputVal;
-        if (currentFilterVal) filterCategory.value = currentFilterVal;
-
-        updateBudgetTags(); // 渲染表格时同步更新标签
-    }
-
-    function renderRecords() {
-        const monthData = appData[currentMonth];
-        const tbody = document.getElementById('recordBody');
-        const filterVal = document.getElementById('filterCategory').value;
-        tbody.innerHTML = '';
-
-        let recordsToShow = monthData.records;
-        if (filterVal !== '全部') recordsToShow = monthData.records.filter(r => r.category === filterVal);
-        const sortedRecords = [...recordsToShow].reverse();
-
-        if (sortedRecords.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="color:#999; padding: 20px 0;">暂无明细记录</td></tr>';
-            return;
-        }
-        sortedRecords.forEach(record => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${record.category}</td>
-                <td>${record.date.substring(5)}</td>
-                <td class="highlight">${record.amount}</td>
-                <td>${record.note || '-'}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('${record.id}')">删</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function calculateAll() {
-        rebuildMonthList();  
-        initDateSelectors(); 
-        const match = currentMonth.match(/^(\d{4})年(\d{1,2})月/);
-        if(match) {
-            document.getElementById('yearSelect').value = match[1];
-            document.getElementById('monthSelect').value = match[2];
-        }
-        recalculateRollovers(); 
-        updateViewAndChart();
-        renderIncomeRecords();
-        renderBudgetTable(); 
-        renderRecords();     
-        saveData();
-    }
-
-    function updateCategoryName(index, newName) {
-        if (!newName || newName.trim() === '') {
-            alert("分类名称不能为空！");
-            renderBudgetTable(); 
-            return;
-        }
-        const monthData = appData[currentMonth];
-        const oldName = monthData.categories[index].name;
-        if (oldName !== newName.trim() && monthData.categories.some(c => c.name === newName.trim())) {
-            alert("该分类名称已存在！");
-            renderBudgetTable();
-            return;
-        }
-        monthData.categories[index].name = newName.trim();
-        monthData.records.forEach(r => { if (r.category === oldName) r.category = newName.trim(); });
-        calculateAll();
-    }
-
-    function addRecord() {
-        const category = document.getElementById('inputCategory').value;
-        const date = document.getElementById('inputDate').value;
-        const amount = Number(document.getElementById('inputAmount').value);
-        const note = document.getElementById('inputNote').value;
-
-        if (!date || !amount || amount <= 0) return alert("请填写完整的日期和正确的金额！");
-        appData[currentMonth].records.push({
-            id: Date.now().toString(), category, date, amount, note
-        });
-        document.getElementById('inputAmount').value = '';
-        document.getElementById('inputNote').value = '';
-        calculateAll(); 
-    }
-
-    function deleteRecord(id) {
-        if (!confirm("确定要删除这条记录吗？")) return;
-        appData[currentMonth].records = appData[currentMonth].records.filter(r => r.id !== id);
-        calculateAll();
-    }
-
-    let myChart = null;
-    function updateViewAndChart() {
-        const monthData = appData[currentMonth];
-        const totalIncome = calculateMonthIncome(monthData);
-        const totalExpense = calculateMonthExpense(monthData);
-        const netIncome = calculateMonthNet(monthData);
-
-        document.getElementById('totalIncome').value = totalIncome || '0';
-        document.getElementById('totalExpense').innerText = totalExpense;
-        document.getElementById('netIncome').innerText = netIncome;
-        document.getElementById('lastMonthRollover').innerText = monthData.rollover || 0;
-
-        updateChart(monthData);
-    }
-
-    function updateChart(monthData) {
-        if (!myChart) myChart = echarts.init(document.getElementById('chart'));
-        const chartData = [];
-        monthData.categories.forEach(cat => {
-            const catExpense = monthData.records.filter(r => r.category === cat.name).reduce((sum, r) => sum + Number(r.amount), 0);
-            if (catExpense > 0) chartData.push({ name: cat.name, value: catExpense });
-        });
-
-        myChart.setOption({
-            tooltip: { trigger: 'item' },
-            legend: { top: 'bottom', type: 'scroll' },
-            series: [{
-                name: '支出金额', type: 'pie', radius: ['40%', '70%'],
-                itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-                label: { show: false, position: 'center' },
-                emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
-                labelLine: { show: false },
-                data: chartData
-            }]
-        }, true); 
-    }
-
-    window.onload = init;
-</script>
+<!-- 引入分离的 JS -->
+<script src="app.js"></script>
 </body>
 </html>
